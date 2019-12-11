@@ -4,8 +4,7 @@ from rdflib.namespace import NamespaceManager, DC #, FOAF
 
 def add_tier_set(questtype, dictionary):
     """
-    read a json file with tier information and
-    output it as rdf
+    read a json file with tier information into an rdf graph
     """
 
     limit = 9999999
