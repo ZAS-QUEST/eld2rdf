@@ -1,38 +1,40 @@
 import json
 from rdflib import Graph, Literal, BNode, Namespace, RDF, RDFS, URIRef
 from rdflib.namespace import DC, FOAF
+from rdflib.namespace import Namespace, NamespaceManager
 
 quest = Namespace("http://zasquest.org/")
 paradisec = Namespace("http://paradisec.org/")
+namespace_manager = NamespaceManager(Graph())
+namespace_manager.bind('paradisec', paradisec)
+namespace_manager.bind('quest', quest)
 
-g = Graph()
+g = Graph(namespace_manager = namespace_manager) 
 g.bind("rdfs", RDFS)
 g.bind("dc", DC)
-g.bind("quest", quest)
-g.bind("paradisec", paradisec)
 
 transcription_dictionary = json.loads(open('transcriptions.json').read())
 translation_dictionary = json.loads(open('translations.json').read())
-
-triples = []
-for filename in list(translation_dictionary.keys())[:3]: 
-    for tierkey in translation_dictionary[filename]: 
-        tierlist = translation_dictionary[filename][tierkey] 
-        for i, tier in enumerate(tierlist):
-            tierID = filename+tierkey+str(i)
-            tierID = tierID.replace(" ",'')
+ 
+LIMIT = 9999999 
+for filename in list(translation_dictionary.keys())[:LIMIT]: 
+    for tiertype in translation_dictionary[filename]: 
+        tierIDs = translation_dictionary[filename][tiertype] 
+        for tierID in tierIDs:
+            tier = translation_dictionary[filename][tiertype][tierID]
+            output_tierID = tierID.replace(" ",'')
             #g.add((paradisec[tierID], RDF.type, quest.Tier))
             #g.add((paradisec[tierID], RDFS.label, " ".join(tier)))
             for j, annotation in enumerate(tier):
-                annotationID = Literal("http://paradisec.org/%s/%s/%s/%s"%(filename,tierkey,i,j)).replace(" ",'') #check for underscores in filenames TODO
-                g.add( (URIRef(annotationID), RDF.type, quest.Annotation))
-                g.add( (URIRef(annotationID), RDFS.label, Literal('"%s"'%annotation)))
+                rdfID = "x%s_%s_%s"%(filename.split('/')[-1][:11],output_tierID.replace('@','_'),j) 
+                g.add( ( paradisec[rdfID], RDF.type, quest.Annotation))
+                g.add( ( paradisec[rdfID], RDFS.label, Literal('%s'%annotation.strip())))
                 
 #for s,p,o in g:
     #print(s,p,o)
     
-    
-print( g.serialize(format='n3') )
+with open("eld.n3", "wb") as rdfout:
+    rdfout.write(g.serialize(format='n3'))
 
 #print( g.serialize(format='n3') )
         
