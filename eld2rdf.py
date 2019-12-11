@@ -1,65 +1,94 @@
 import json
-from rdflib import Graph, Literal, BNode, Namespace, RDF, RDFS, URIRef
-from rdflib.namespace import DC, FOAF 
-from rdflib.namespace import Namespace, NamespaceManager
+from rdflib import Namespace, Graph, Literal, RDF, RDFS #, URIRef, BNode
+from rdflib.namespace import NamespaceManager, DC #, FOAF
 
-quest = Namespace("http://zasquest.org/")
-questresolver = Namespace("http://zasquest.org/resolver/")
-paradisec = Namespace("https://catalog.paradisec.org.au/collections/")
-elar = Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/")
-elareafs = Namespace("https://elar.soas.ac.uk/resources/")
-dbpedia = Namespace("http://dbpedia.org/ontology/")
-namespace_manager = NamespaceManager(Graph())
-namespace_manager.bind('paradisec', paradisec)
-namespace_manager.bind('quest', quest)
-namespace_manager.bind('questresolver', questresolver)
-namespace_manager.bind('dbpedia', dbpedia)
+def add_tier_set(questtype, dictionary):
+    """
+    read a json file with tier information and
+    output it as rdf
+    """
 
-archive_namespaces = {
-    'paradisec': paradisec,
-    'elar': elar,
-    'elareafs': elareafs
+    limit = 9999999
+    for filename in list(dictionary.keys())[:limit]:
+        #get basename
+        file_id = filename.split('/')[-1]
+        #use hashed filename as internal reference for brevity
+        filehash = 'x'+hex(hash("%s"%filename.split('/')[-1]))
+        #the dictionaries have a hierarchy tiertype>tierID>tiercontent
+        #tiertype is eg "transcription", tier ID is "transcription@alfred"
+        #the dictionaries groups tiers by tiertype, but the IDs themselves would
+        #already be unique
+        for tiertype in dictionary[filename]:
+            tier_ids = dictionary[filename][tiertype]
+            for tier_id in tier_ids:
+                tier = dictionary[filename][tiertype][tier_id]
+                #sanitize tier names
+                output_tier_id = "%s_%s" %(filehash, tier_id.replace(" ", '').replace("\\", ''))
+                #define default namespaces and resolveID
+                archive_namespace = 'paradisec'
+                resolve_id = file_id
+                #modify defaults as applicable
+                if filename.startswith('elareafs'):
+                    archive_namespace = 'elarfiles' #we hackishly infer the archive from the filename TODO
+                    resolve_id = file_id.replace('-b-', '/') #better use landing page instead of file location
+                #add information about tier
+                GRAPH.add((QUESTRESOLVER[output_tier_id],
+                           RDF.type,
+                           QUEST.Tier))
+                GRAPH.add((QUESTRESOLVER[output_tier_id],
+                           DBPEDIA.isPartOf,
+                           ARCHIVE_NAMESPACES[archive_namespace][resolve_id]))
+                #add information about components of tier
+                for j, annotation in enumerate(tier): #annotations are utterance length in this context
+                    annotation_id = "%s_%s"%(tier_id, j)
+                    GRAPH.add((QUESTRESOLVER[annotation_id],
+                               RDF.type,
+                               questtype))
+                    GRAPH.add((QUESTRESOLVER[annotation_id],
+                               RDFS.label,
+                               Literal('%s'%annotation.strip())))
+                    GRAPH.add((QUESTRESOLVER[annotation_id],
+                               DBPEDIA.isPartOf,
+                               QUESTRESOLVER[output_tier_id]))
+
+
+#define general namespaces
+QUEST = Namespace("http://zasquest.org/")
+QUESTRESOLVER = Namespace("http://zasquest.org/resolver/")
+DBPEDIA = Namespace("http://dbpedia.org/ontology/")
+
+#define archive namespaces
+NAMESPACE_MANAGER = NamespaceManager(Graph())
+NAMESPACE_MANAGER.bind('dbpedia', DBPEDIA)
+NAMESPACE_MANAGER.bind('quest', QUEST) #for ontology
+NAMESPACE_MANAGER.bind('QUESTRESOLVER', QUESTRESOLVER) #for the bridge for rewritable URLs
+NAMESPACE_MANAGER.bind("rdfs", RDFS)
+NAMESPACE_MANAGER.bind("dc", DC)
+
+ARCHIVE_NAMESPACES = {
+    'paradisec': Namespace("https://cataloGRAPH.paradisec.orGRAPH.au/collections/"),
+    'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
+    'elarfiles': Namespace("https://elar.soas.ac.uk/resources/")
     }
 
-g = Graph(namespace_manager = namespace_manager) 
-g.bind("rdfs", RDFS)
-g.bind("dc", DC)
+for archive in ARCHIVE_NAMESPACES:
+    NAMESPACE_MANAGER.bind(archive, ARCHIVE_NAMESPACES[archive])
 
-transcription_dictionary = json.loads(open('transcriptions.json').read())
-translation_dictionary = json.loads(open('translations.json').read())
- 
-LIMIT = 9999999 
-for filename in list(translation_dictionary.keys())[:LIMIT]: 
-    fileID = filename.split('/')[-1]
-    filehash = 'x'+hex(hash("%s"%filename.split('/')[-1]))
-    for tiertype in translation_dictionary[filename]: 
-        tierIDs = translation_dictionary[filename][tiertype] 
-        for tierID in tierIDs:
-            tier = translation_dictionary[filename][tiertype][tierID]
-            output_tierID = "%s_%s" %(filehash, tierID.replace(" ",''))
-            g.add((questresolver[output_tierID], RDF.type, quest.Tier)) 
-            archive_namespace = 'paradisec'
-            resolveID = fileID
-            if filename.startswith('elareafs'):
-                archive_namespace = 'elareafs' #we hackishly infer the archive from the filename TODO 
-                resolveID = fileID.replace('-b-','/') #better use landing page instead of file location
-            g.add((questresolver[output_tierID], dbpedia.isPartOf, archive_namespaces[archive_namespace][resolveID]))   
-            for j, annotation in enumerate(tier):
-                rdfID = "%s_%s"%(output_tierID,j) 
-                g.add( ( questresolver[rdfID], RDF.type, quest.Annotation))
-                g.add( ( questresolver[rdfID], dbpedia.isPartOf, questresolver[output_tierID]))                
-                g.add( ( questresolver[rdfID], RDFS.label, Literal('%s'%annotation.strip())))
-                
-#for s,p,o in g:
-    #print(s,p,o)
-    
-with open("eld.n3", "wb") as rdfout:
-    rdfout.write(g.serialize(format='n3'))
 
-#print( g.serialize(format='n3') )
-        
-#part of
-#labels as translations 
-#glosses
-#LGR
-#topic
+if __name__ == "__main__":
+    GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
+    print("preparing translations")
+    TRANSLATION_DICTIONARY = json.loads(open('translations.json').read())
+    add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
+
+    print("preparing transcriptions")
+    TRANSCRIPTION_DICTIONARY = json.loads(open('transcriptions.json').read())
+    add_tier_set(QUEST.Transcription, TRANSCRIPTION_DICTIONARY)
+
+    print("writing output")
+    with open("eld.n3", "wb") as rdfout:
+        rdfout.write(GRAPH.serialize(format='n3'))
+
+    #glosses
+    #LGR
+    #topic with NERD
