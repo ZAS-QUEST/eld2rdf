@@ -1,4 +1,5 @@
 import json
+import glob
 from rdflib import Namespace, Graph, Literal, RDF, RDFS #, URIRef, BNode
 from rdflib.namespace import NamespaceManager, DC #, FOAF
 
@@ -10,7 +11,7 @@ def add_tier_set(questtype, dictionary):
     limit = 9999999
     for filename in list(dictionary.keys())[:limit]:
         #get basename
-        file_id = filename.split('/')[-1]
+        file_id = filename.split('/')[-1].strip().replace(' ', '_')
         #use hashed filename as internal reference for brevity
         filehash = 'x'+hex(hash("%s"%filename.split('/')[-1]))
         #the dictionaries have a hierarchy tiertype>tierID>tiercontent
@@ -22,7 +23,7 @@ def add_tier_set(questtype, dictionary):
             for tier_id in tier_ids:
                 tier = dictionary[filename][tiertype][tier_id]
                 #sanitize tier names
-                output_tier_id = "%s_%s" %(filehash, tier_id.replace(" ", '').replace("\\", ''))
+                output_tier_id = "%s_%s" %(filehash, tier_id.replace(" ", '').replace("\\", '').replace("<", '').replace(">", '')) #needsbetter sanitize
                 #define default namespaces and resolveID
                 archive_namespace = 'paradisec'
                 resolve_id = file_id
@@ -39,7 +40,7 @@ def add_tier_set(questtype, dictionary):
                            ARCHIVE_NAMESPACES[archive_namespace][resolve_id]))
                 #add information about components of tier
                 for j, annotation in enumerate(tier): #annotations are utterance length in this context
-                    annotation_id = "%s_%s"%(tier_id, j)
+                    annotation_id = "%s_%s"%(output_tier_id, j)
                     GRAPH.add((QUESTRESOLVER[annotation_id],
                                RDF.type,
                                questtype))
@@ -76,13 +77,15 @@ for archive in ARCHIVE_NAMESPACES:
 
 if __name__ == "__main__":
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
-    print("preparing translations")
-    TRANSLATION_DICTIONARY = json.loads(open('translations.json').read())
-    add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
+    for f in glob.glob('*-translations.json'):
+        print("preparing translations for %s"%f)
+        TRANSLATION_DICTIONARY = json.loads(open(f).read())
+        add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
 
-    print("preparing transcriptions")
-    TRANSCRIPTION_DICTIONARY = json.loads(open('transcriptions.json').read())
-    add_tier_set(QUEST.Transcription, TRANSCRIPTION_DICTIONARY)
+    for f in glob.glob('*-transcriptions.json'):
+        print("preparing transcriptions for %s"%f)
+        TRANSCRIPTION_DICTIONARY = json.loads(open(f).read())
+        add_tier_set(QUEST.Transcription, TRANSCRIPTION_DICTIONARY)
 
     print("writing output")
     with open("eld.n3", "wb") as rdfout:
