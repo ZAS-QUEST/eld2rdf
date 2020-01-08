@@ -2,7 +2,7 @@ import json
 import glob
 from rdflib import Namespace, Graph, Literal, RDF, RDFS #, URIRef, BNode
 from rdflib.namespace import NamespaceManager, DC #, FOAF
-from resolver import get_URI_for_AILLA
+from resolver import get_URI_for_AILLA, get_URI_for_ANLA
 
 def add_tier_set(questtype, dictionary):
     """
@@ -38,12 +38,15 @@ def add_tier_set(questtype, dictionary):
                 if filename.startswith('aillaeafs'):
                     archive_namespace = 'ailla' #we hackishly infer the archive from the filename TODO
                     resolve_id = get_URI_for_AILLA(basename)
+                if filename.startswith('anlaeafs'):
+                   archive_namespace = 'anla' #we hackishly infer the archive from the filename TODO
+                   resolve_id = get_URI_for_ANLA(basename)
                 #add information about tier
                 GRAPH.add((QUESTRESOLVER[output_tier_id],
                            RDF.type,
                            QUEST.Tier))
                 GRAPH.add((QUESTRESOLVER[output_tier_id],
-                           DBPEDIA.isPartOf,
+                           DBPEDIA.isPartOf, #check for tier-file, file-collection and tier-collection meronymic relations
                            ARCHIVE_NAMESPACES[archive_namespace][resolve_id]))
                 
                 GRAPH.add((ARCHIVE_NAMESPACES[archive_namespace][resolve_id],
@@ -80,7 +83,8 @@ ARCHIVE_NAMESPACES = {
     'paradisec': Namespace("https://cataloGRAPH.paradisec.orGRAPH.au/collections/"),
     'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
     'elarfiles': Namespace("https://elar.soas.ac.uk/resources/"),
-    'ailla': Namespace("http://ailla.utexas.org/islandora/object/")
+    'ailla': Namespace("http://ailla.utexas.org/islandora/object/"),
+    'anla': Namespace("https://www.uaf.edu/anla/collections/search/resultDetail.xml?id=")
     }
 
 for archive in ARCHIVE_NAMESPACES:
@@ -90,7 +94,7 @@ for archive in ARCHIVE_NAMESPACES:
 if __name__ == "__main__":
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
     #for f in glob.glob('translations*.json'):
-    for f in glob.glob('translations-ai*.json'):
+    for f in glob.glob('translations-an*.json'):
         print("preparing translations for %s"%f)
         TRANSLATION_DICTIONARY = json.loads(open(f).read())
         add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
