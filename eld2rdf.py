@@ -2,7 +2,7 @@ import json
 import glob
 from rdflib import Namespace, Graph, Literal, RDF, RDFS #, URIRef, BNode
 from rdflib.namespace import NamespaceManager, DC #, FOAF
-from resolver import get_URI_for_AILLA, get_URI_for_ANLA
+from resolver import get_URI_for_AILLA, get_URI_for_ANLA, get_URI_for_TLA
 
 def add_tier_set(questtype, dictionary):
     """
@@ -17,7 +17,7 @@ def add_tier_set(questtype, dictionary):
         #uri = getURI(basename, archive)
         file_id = basename.replace(' ', '_')
         #use hashed filename as internal reference for brevity
-        filehash = 'x'+hex(hash("%s"%filename.split('/')[-1]))
+        filehash = 'x'+hex(hash("%s"%filename.split('/')[-1])) #maybe better use blank nodes here?
         #the dictionaries have a hierarchy tiertype>tierID>tiercontent
         #tiertype is eg "transcription", tier ID is "transcription@alfred"
         #the dictionaries groups tiers by tiertype, but the IDs themselves would
@@ -41,6 +41,9 @@ def add_tier_set(questtype, dictionary):
                 if filename.startswith('anlaeafs'):
                    archive_namespace = 'anla' #we hackishly infer the archive from the filename TODO
                    resolve_id = get_URI_for_ANLA(basename)
+                if filename.startswith('tlaeafs'):
+                   archive_namespace = 'tla' #we hackishly infer the archive from the filename TODO
+                   resolve_id = get_URI_for_TLA(basename)
                 #add information about tier
                 GRAPH.add((QUESTRESOLVER[output_tier_id],
                            RDF.type,
@@ -84,7 +87,8 @@ ARCHIVE_NAMESPACES = {
     'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
     'elarfiles': Namespace("https://elar.soas.ac.uk/resources/"),
     'ailla': Namespace("http://ailla.utexas.org/islandora/object/"),
-    'anla': Namespace("https://www.uaf.edu/anla/collections/search/resultDetail.xml?id=")
+    'anla': Namespace("https://www.uaf.edu/anla/collections/search/resultDetail.xml?id="),
+    'tla': Namespace("https://archive.mpi.nl/islandora/object/")
     }
 
 for archive in ARCHIVE_NAMESPACES:
@@ -94,7 +98,7 @@ for archive in ARCHIVE_NAMESPACES:
 if __name__ == "__main__":
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
     #for f in glob.glob('translations*.json'):
-    for f in glob.glob('translations-an*.json'):
+    for f in glob.glob('translations-tl*.json'):
         print("preparing translations for %s"%f)
         TRANSLATION_DICTIONARY = json.loads(open(f).read())
         add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
