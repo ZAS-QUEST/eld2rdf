@@ -2,7 +2,7 @@ import json
 import glob
 from rdflib import Namespace, Graph, Literal, RDF, RDFS #, URIRef, BNode
 from rdflib.namespace import NamespaceManager, DC #, FOAF
-from resolver import get_URI_for_AILLA, get_URI_for_ANLA, get_URI_for_TLA, get_URI_for_Paradisec
+from resolver import get_URI_for_AILLA, get_URI_for_ANLA, get_URI_for_TLA, get_URI_for_Paradisec, get_URI_for_ELAR
 
 def add_tier_set(questtype, dictionary):
     """
@@ -33,8 +33,8 @@ def add_tier_set(questtype, dictionary):
                 resolve_id = file_id
                 #modify defaults as applicable
                 if filename.startswith('elareafs'):
-                    archive_namespace = 'elarfiles' #we hackishly infer the archive from the filename TODO
-                    resolve_id = file_id.replace('-b-', '/') #better use landing page instead of file location
+                    archive_namespace = 'elarcorpus' #we hackishly infer the archive from the filename TODO
+                    resolve_id = get_URI_for_ELAR(basename)
                 if filename.startswith('aillaeafs'):
                     archive_namespace = 'ailla' #we hackishly infer the archive from the filename TODO
                     resolve_id = get_URI_for_AILLA(basename)
@@ -85,9 +85,10 @@ NAMESPACE_MANAGER.bind('QUESTRESOLVER', QUESTRESOLVER) #for the bridge for rewri
 NAMESPACE_MANAGER.bind("rdfs", RDFS)
 NAMESPACE_MANAGER.bind("dc", DC)
 
-ARCHIVE_NAMESPACES = {
+ARCHIVE_NAMESPACES = { 
     'paradisec': Namespace("https://catalog.paradisec.org.au/collections/"),
-    'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
+    #'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
+    'elarcorpus': Namespace("https://elar.soas.ac.uk/Record/"),   
     'elarfiles': Namespace("https://elar.soas.ac.uk/resources/"),
     'ailla': Namespace("http://ailla.utexas.org/islandora/object/"),
     'anla': Namespace("https://www.uaf.edu/anla/collections/search/resultDetail.xml?id="),
@@ -101,7 +102,7 @@ for archive in ARCHIVE_NAMESPACES:
 if __name__ == "__main__":
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
     #for f in glob.glob('translations*.json'):
-    for f in glob.glob('translations-pa*.json'):
+    for f in glob.glob('translations-el*.json'):
         print("preparing translations for %s"%f)
         TRANSLATION_DICTIONARY = json.loads(open(f).read())
         add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)

@@ -23,6 +23,13 @@ for k in tlajson:
     vs = tlajson[k]
     for v in vs:
         TLAMAPPER[v] = k.replace("/datastream/OBJ/download", "").split("/")[-1]
+        
+        
+ELARMAPPER = {} 
+for t in open("elar2.tsv").readlines():
+    ID, eaf = t.strip().split()
+    eafname = eaf.split('/')[-1]  
+    ELARMAPPER[eafname] = ID
 
 
 PARADISECMAPPER = {}
@@ -54,4 +61,7 @@ def get_URI_for_Paradisec(eaf):
 
 
 def get_URI_for_ELAR(eaf):
-    return ELARMAPPER[eaf]
+    try:
+        return ELARMAPPER[eaf]
+    except KeyError:
+        return  "www.test.de"
