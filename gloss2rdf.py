@@ -4,9 +4,9 @@ import pprint
 import re
 import json
 import sys
+from collections import Counter
 from rdflib import Namespace, Graph, RDFS  # , URIRef, BNode
 from rdflib.namespace import NamespaceManager, DCTERMS  # , FOAF
-from collections import Counter
 
 LGRLIST = set(
     [
@@ -124,37 +124,39 @@ for archive in ARCHIVE_NAMESPACES:
 
 if __name__ == "__main__":
     personnumberdic = {
-        "1SG": ["1","SG"],
-        "2SG": ["2","SG"],
-        "3SG": ["3","SG"],
-        "1DU": ["1","DU"],
-        "2DU": ["2","DU"],
-        "3DU": ["3","DU"],
-        "1PL": ["1","PL"],
-        "2PL": ["2","PL"],
-        "3PL": ["3","PL"]
-        }
-                            
+        "1SG": ["1", "SG"],
+        "2SG": ["2", "SG"],
+        "3SG": ["3", "SG"],
+        "1DU": ["1", "DU"],
+        "2DU": ["2", "DU"],
+        "3DU": ["3", "DU"],
+        "1PL": ["1", "PL"],
+        "2PL": ["2", "PL"],
+        "3PL": ["3", "PL"],
+    }
+
     FILENAME = sys.argv[1]
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
-    
-    #all_glosses = {}
+
+    # all_glosses = {}
     with open(FILENAME) as jsoninfile:
         GLOSSJSON = json.loads(jsoninfile.read())
-    
-    #store and tally all found glosses
+
+    # store and tally all found glosses
     allcapsglosses = Counter()
-    for eaffile in GLOSSJSON: 
-        glosses = [supergloss 
-                      for tiertype in GLOSSJSON[eaffile] 
-                      for tier_ID in GLOSSJSON[eaffile][tiertype] 
-                      for string in GLOSSJSON[eaffile][tiertype][tier_ID][1] # (words,glosses)
-                      for supergloss in re.split("[-=:\. ]", string)
-                      if re.search("^[^a-z]+$", supergloss) and re.search("[A-Z]", supergloss)]
-        newglosses = Counter(glosses) 
+    for eaffile in GLOSSJSON:
+        glosses = [
+            supergloss
+            for tiertype in GLOSSJSON[eaffile]
+            for tier_ID in GLOSSJSON[eaffile][tiertype]
+            for string in GLOSSJSON[eaffile][tiertype][tier_ID][1]  # (words,glosses)
+            for supergloss in re.split("[-=:. ]", string)
+            if re.search("^[^a-z]+$", supergloss) and re.search("[A-Z]", supergloss)
+        ]
+        newglosses = Counter(glosses)
         allcapsglosses += newglosses
-        
-        #split fused personnumber glosses
+
+        # split fused personnumber glosses
         for k in personnumberdic:
             if k in newglosses:
                 occurrences = newglosses[k]
@@ -162,11 +164,11 @@ if __name__ == "__main__":
                 newglosses[person] += occurrences
                 newglosses[number] += occurrences
                 del newglosses[k]
-                          
+
         found_LGR_glosses = set(newglosses.keys()) & LGRLIST  # set intersection
         for lgr_gloss in found_LGR_glosses:
             GRAPH.add((QUESTRESOLVER[eaffile], DCTERMS.references, LGR[lgr_gloss]))
-    
+
     pprint.pprint(allcapsglosses)
     print("writing output")
     with open(FILENAME.replace("json", "n3"), "wb") as rdfout:
