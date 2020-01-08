@@ -9,7 +9,15 @@ for k in tlajson:
     vs = tlajson[k]
     for v in vs:
         TLAMAPPER[v] = k.replace('/datastream/OBJ/download','').split('/')[-1]
+        
+        
          
+PARADISECMAPPER = {}
+paradisecjson = json.loads(open('paradisec.json').read())
+for k in paradisecjson:
+    vs = paradisecjson[k]
+    for v in vs:
+        PARADISECMAPPER[v] = k.replace('/collections/','')
 
 #def get_URI(eaf, archive):
     #if archive == "AILLA": 
@@ -23,10 +31,11 @@ def get_URI_for_AILLA(eaf):
 def get_URI_for_ANLA(eaf):
     return ANLAMAPPER[eaf]
 
-
-
 def get_URI_for_TLA(eaf):
     return TLAMAPPER[eaf]
+
+def get_URI_for_Paradisec(eaf):
+    return PARADISECMAPPER[eaf]
 
  
 

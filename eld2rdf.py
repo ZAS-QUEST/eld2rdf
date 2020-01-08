@@ -2,7 +2,7 @@ import json
 import glob
 from rdflib import Namespace, Graph, Literal, RDF, RDFS #, URIRef, BNode
 from rdflib.namespace import NamespaceManager, DC #, FOAF
-from resolver import get_URI_for_AILLA, get_URI_for_ANLA, get_URI_for_TLA
+from resolver import get_URI_for_AILLA, get_URI_for_ANLA, get_URI_for_TLA, get_URI_for_Paradisec
 
 def add_tier_set(questtype, dictionary):
     """
@@ -44,6 +44,9 @@ def add_tier_set(questtype, dictionary):
                 if filename.startswith('tlaeafs'):
                    archive_namespace = 'tla' #we hackishly infer the archive from the filename TODO
                    resolve_id = get_URI_for_TLA(basename)
+                if filename.startswith('paradiseceafs'):
+                   archive_namespace = 'paradisec' #we hackishly infer the archive from the filename TODO
+                   resolve_id = get_URI_for_Paradisec(basename)
                 #add information about tier
                 GRAPH.add((QUESTRESOLVER[output_tier_id],
                            RDF.type,
@@ -83,7 +86,7 @@ NAMESPACE_MANAGER.bind("rdfs", RDFS)
 NAMESPACE_MANAGER.bind("dc", DC)
 
 ARCHIVE_NAMESPACES = {
-    'paradisec': Namespace("https://cataloGRAPH.paradisec.orGRAPH.au/collections/"),
+    'paradisec': Namespace("https://catalog.paradisec.org.au/collections/"),
     'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
     'elarfiles': Namespace("https://elar.soas.ac.uk/resources/"),
     'ailla': Namespace("http://ailla.utexas.org/islandora/object/"),
@@ -98,7 +101,7 @@ for archive in ARCHIVE_NAMESPACES:
 if __name__ == "__main__":
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
     #for f in glob.glob('translations*.json'):
-    for f in glob.glob('translations-tl*.json'):
+    for f in glob.glob('translations-pa*.json'):
         print("preparing translations for %s"%f)
         TRANSLATION_DICTIONARY = json.loads(open(f).read())
         add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
