@@ -8,6 +8,8 @@ from collections import Counter
 from rdflib import Namespace, Graph, RDFS  # , URIRef, BNode
 from rdflib.namespace import NamespaceManager, DCTERMS  # , FOAF
 
+from resolver import get_URI_for_AILLA, get_URI_for_ANLA, get_URI_for_TLA, get_URI_for_Paradisec, get_URI_for_ELAR
+
 LGRLIST = set(
     [
         "1",
@@ -98,25 +100,29 @@ LGRLIST = set(
 
 
 # define general namespaces
-QUEST = Namespace("http://zasquest.org/")
-QUESTRESOLVER = Namespace("http://zasquest.org/resolver/")
+#QUEST = Namespace("http://zasquest.org/")
+#QUESTRESOLVER = Namespace("http://zasquest.org/resolver/")
 LGR = Namespace("https://www.eva.mpg.de/lingua/resources/glossing-rules.php/")
 
 # define archive namespaces
 NAMESPACE_MANAGER = NamespaceManager(Graph())
 NAMESPACE_MANAGER.bind("lgr", LGR)
-NAMESPACE_MANAGER.bind("quest", QUEST)  # for ontology
-NAMESPACE_MANAGER.bind(
-    "QUESTRESOLVER", QUESTRESOLVER
-)  # for the bridge for rewritable URLs
+#NAMESPACE_MANAGER.bind("quest", QUEST)  # for ontology
+#NAMESPACE_MANAGER.bind(
+    #"QUESTRESOLVER", QUESTRESOLVER
+#)  # for the bridge for rewritable URLs
 NAMESPACE_MANAGER.bind("rdfs", RDFS)
 NAMESPACE_MANAGER.bind("dcterms", DCTERMS)
 
-ARCHIVE_NAMESPACES = {
-    "paradisec": Namespace("https://cataloGRAPH.paradisec.orGRAPH.au/collections/"),
-    "elarcorpus": Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
-    "elarfiles": Namespace("https://elar.soas.ac.uk/resources/"),
-}
+ARCHIVE_NAMESPACES = { 
+    'paradisec': Namespace("https://catalog.paradisec.org.au/collections/"),
+    #'elarcorpus': Namespace("https://lat1.lis.soas.ac.uk/corpora/ELAR/"),
+    'elarcorpus': Namespace("https://elar.soas.ac.uk/Record/"),   
+    'elarfiles': Namespace("https://elar.soas.ac.uk/resources/"),
+    'ailla': Namespace("http://ailla.utexas.org/islandora/object/"),
+    'anla': Namespace("https://www.uaf.edu/anla/collections/search/resultDetail.xml?id="),
+    'tla': Namespace("https://archive.mpi.nl/islandora/object/")
+    }
 
 for archive in ARCHIVE_NAMESPACES:
     NAMESPACE_MANAGER.bind(archive, ARCHIVE_NAMESPACES[archive])
@@ -136,15 +142,31 @@ if __name__ == "__main__":
     }
 
     FILENAME = sys.argv[1]
+    
+    if FILENAME.startswith('glosses-elareafs'):
+        archive_namespace = 'elarcorpus' #we hackishly infer the archive from the filename TODO
+        resolver = get_URI_for_ELAR
+    if FILENAME.startswith('glosses-aillaeafs'):
+        archive_namespace = 'ailla' #we hackishly infer the archive from the filename TODO
+        resolver = get_URI_for_AILLA
+    if FILENAME.startswith('glosses-anlaeafs'):
+        archive_namespace = 'anla' #we hackishly infer the archive from the filename TODO
+        resolver = get_URI_for_ANLA
+    if FILENAME.startswith('glosses-tlaeafs'):
+        archive_namespace = 'tla' #we hackishly infer the archive from the filename TODO
+        resolver = get_URI_for_TLA
+    if FILENAME.startswith('glosses-paradiseceafs'):
+        archive_namespace = 'paradisec' #we hackishly infer the archive from the filename TODO
+        resolver = get_URI_for_Paradisec
+ 
     GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
-
-    # all_glosses = {}
     with open(FILENAME) as jsoninfile:
         GLOSSJSON = json.loads(jsoninfile.read())
 
     # store and tally all found glosses
     allcapsglosses = Counter()
-    for eaffile in GLOSSJSON:
+    for eaffile in GLOSSJSON:  
+        BASENAME = eaffile.split('/')[-1].strip() 
         glosses = [
             supergloss
             for tiertype in GLOSSJSON[eaffile]
@@ -167,7 +189,7 @@ if __name__ == "__main__":
 
         found_LGR_glosses = set(newglosses.keys()) & LGRLIST  # set intersection
         for lgr_gloss in found_LGR_glosses:
-            GRAPH.add((QUESTRESOLVER[eaffile], DCTERMS.references, LGR[lgr_gloss]))
+            GRAPH.add((ARCHIVE_NAMESPACES[archive_namespace][resolver(BASENAME)], DCTERMS.references, LGR[lgr_gloss]))
 
     pprint.pprint(allcapsglosses)
     print("writing output")
