@@ -100,18 +100,17 @@ for archive in ARCHIVE_NAMESPACES:
 
 
 if __name__ == "__main__":
-    GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER)
-    #for f in glob.glob('translations*.json'):
-    for f in glob.glob('translations-el*.json'):
+    GRAPH = Graph(namespace_manager=NAMESPACE_MANAGER) 
+    for f in glob.glob('transcriptions-*.json'):
+        print("preparing transcriptions for %s"%f)
+        TRANSCRIPTION_DICTIONARY = json.loads(open(f).read())
+        add_tier_set(QUEST.Transcription, TRANSCRIPTION_DICTIONARY)
+
+    for f in glob.glob('translations-*.json'):
         print("preparing translations for %s"%f)
         TRANSLATION_DICTIONARY = json.loads(open(f).read())
         add_tier_set(QUEST.Translation, TRANSLATION_DICTIONARY)
-
-    #for f in glob.glob('*-transcriptions.json'):
-        #print("preparing transcriptions for %s"%f)
-        #TRANSCRIPTION_DICTIONARY = json.loads(open(f).read())
-        #add_tier_set(QUEST.Transcription, TRANSCRIPTION_DICTIONARY)
-
+        
     print("writing output")
     with open("eld.n3", "wb") as rdfout:
         rdfout.write(GRAPH.serialize(format='n3'))
