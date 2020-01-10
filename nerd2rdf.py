@@ -64,9 +64,9 @@ if __name__ == "__main__":
         NERDJSON = json.loads(jsoninfile.read())
 
     for eaffile in NERDJSON:
-        print(eaffile)
+        #print(eaffile)
         BASENAME = eaffile.split('/')[-1].strip()
-        print(BASENAME)
+        #print(BASENAME)
         for wikidataID in NERDJSON[eaffile]:
             GRAPH.add((ARCHIVE_NAMESPACES[archive_namespace][resolver(BASENAME)], DC.topic, WIKIDATA[wikidataID]))
 
